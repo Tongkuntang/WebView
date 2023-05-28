@@ -12,25 +12,29 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.animation.Animation
 import android.view.animation.Transformation
-
+import android.support.v4.app.ActivityCompat
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.Manifest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import kotlinx.android.synthetic.main.activity_web_view.*
-
+import android.webkit.DownloadListener
+import android.content.pm.PackageManager
 class WebViewActivity : AppCompatActivity(){
 
-    private val URL = "https://google.com"
+    private val URL = "http://bgfleet.loginto.me/Tracking/mobile/login.php"
     private var isAlreadyCreated = false
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_web_view)
-
+        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), PackageManager.PERMISSION_GRANTED);
         startLoaderAnimate()
 
+        webView.settings.setJavaScriptEnabled(true);
+        webView.settings.setSupportMultipleWindows(true);
+        webView.settings.setJavaScriptCanOpenWindowsAutomatically(true);
         webView.settings.javaScriptEnabled = true
         webView.settings.setSupportZoom(false)
 
@@ -47,6 +51,16 @@ class WebViewActivity : AppCompatActivity(){
                         this@WebViewActivity)
             }
         }
+
+        // Expose Android methods to Javascript layer
+        val javascriptInterface = JavascriptInterface(applicationContext)
+        webView.addJavascriptInterface(javascriptInterface, "Android")
+        webView.setDownloadListener(DownloadListener { url, _, _, _, _ ->
+            if (url.startsWith("blob:")) {
+                webView.evaluateJavascript(javascriptInterface.getBase64StringFromBlobUrl(url), null)
+            }
+        })
+
 
         webView.loadUrl(URL)
     }
